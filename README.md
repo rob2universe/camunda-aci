@@ -11,8 +11,8 @@ The project connects to the Camunda enterprise registry to download the image. T
 ## Usage
 
 - CLone the project or download the two files:
-   [*./arm/aci-camunda-ee.json*](./arm/aci-camunda-ee.json) 
-   [*./arm/aci-camunda-ee.parameters.json*](./arm/aci-camunda-ee.parameters.json) 
+   - [*./arm/aci-camunda-ee.json*](./arm/aci-camunda-ee.json)   
+   - [*./arm/aci-camunda-ee.parameters.json*](./arm/aci-camunda-ee.parameters.json) 
 - Adjust the parameters in [*./arm/aci-camunda-ee.parameters.json*](./arm/aci-camunda-ee.parameters.json) according to your wishes.
 - From Azure Shell 
    1. run:  `az login`    
