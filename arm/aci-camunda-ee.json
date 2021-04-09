@@ -1,0 +1,166 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "registryUser": {
+            "type": "string",
+            "metadata": {
+                "description": "Camunda registry user (from welcome email)"
+            }
+        },
+        "registryPassword": {
+            "type": "string",
+            "metadata": {
+                "description": "Camunda registry password (from welcome email)"
+            }
+        },
+        "registry": {
+            "type": "string",
+            "defaultValue": "registry.camunda.cloud",
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "image": {
+            "type": "string",
+            "defaultValue": "registry.camunda.cloud/cambpm-ee/camunda-bpm-platform-ee:run-7.15.0",
+            "metadata": {
+                "description": "Container image to be used."
+            }
+        },
+        "containerGroupName": {
+            "type": "string",
+            "defaultValue": "camunda-containers",
+            "metadata": {
+                "description": "Container group name of choice"
+            }
+        },
+        "dnsName": {
+            "type": "string",
+            "metadata": {
+                "description": "DNS name of choice, must be still available. Not required if no public IP is used."
+            }
+        },
+        "springApplicationJson": {
+            "type": "string",
+            "defaultValue": "{\"spring.datasource.url\":\"jdbc:h2:/mnt/azfile/camunda-h2-default/process-engine;TRACE_LEVEL_FILE=0;DB_CLOSE_ON_EXIT=FALSE\",\"camunda.bpm.run.auth.enabled\":\"true\"}",
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of Azure Storage account to use to store the database file"
+            }
+        },
+        "fileShareName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the file share inside the storage account to be used to store the database file"
+            }
+        }
+    },
+    "functions": [],
+    "variables": {
+        "storageAccountId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+        // "storageAccountApiVersion": "[providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[parameters('storageAccountName')]",
+            "location": "[resourceGroup().location]",
+            "kind": "StorageV2",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(parameters('storageAccountName'), '/default/', parameters('fileShareName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ]
+        },
+        {
+            "name": "[parameters('containerGroupName')]",
+            "type": "Microsoft.ContainerInstance/containerGroups",
+            "apiVersion": "2018-10-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn":[
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            ],
+            "properties": {
+                "containers": [
+                    {
+                        "name": "[parameters('containerGroupName')]",
+                        "properties": {
+                            "image": "[parameters('image')]",
+                            "ports": [
+                                {
+                                    "port": 8080
+                                }
+                            ],
+                            "environmentVariables": [
+                                {
+                                    "name": "SPRING_APPLICATION_JSON",
+                                    "value": "[parameters('springApplicationJson')]"
+                                }
+                            ],
+                            "resources": {
+                                "requests": {
+                                    "cpu": 1,
+                                    "memoryInGB": 0.5
+                                }
+                            },
+                            "volumeMounts": [
+                                {
+                                    "name": "db-file-share",
+                                    "mountPath": "/mnt/azfile",
+                                    "readOnly": false
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "imageRegistryCredentials": [
+                    {
+                        "server": "[parameters('registry')]",
+                        "username": "[parameters('registryUser')]",
+                        "password": "[parameters('registryPassword')]"
+                    }
+                ],
+                "osType": "Linux",
+                "volumes": [
+                    {
+                        "name": "db-file-share",
+                        "azureFile": {
+                            "shareName": "[parameters('fileShareName')]",
+                            "readOnly": false,
+                            "storageAccountName": "[parameters('storageAccountName')]",
+                            "storageAccountKey": "[listKeys(variables('storageAccountId'), '2019-04-01').keys[0].value]"
+                        }
+                    }
+                ],
+                "ipAddress": {
+                    "type": "[if(equals(parameters('dnsName'), 'Private') , 'Private', 'Public')]",
+                    "ports": [
+                        {
+                            "protocol": "TCP",
+                            "port": 8080
+                        }
+                    ],
+                    "dnsNameLabel": "[parameters('dnsName')]"
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}
