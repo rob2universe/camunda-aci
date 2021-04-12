@@ -24,3 +24,7 @@ The project connects to the Camunda enterprise registry to download the image. T
 Once the container instance is running, the web application will be accessible under the  
 *http://[dnsname].[region].azurecontainer.io:8080*  
 e.g. http://mycamundadns.southeastasia.azurecontainer.io:8080
+
+## Cleanup
+Delete the resource group you created initially, e.g.
+`az group delete --name rg-camunda`
