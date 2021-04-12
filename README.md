@@ -28,3 +28,9 @@ e.g. http://mycamundadns.southeastasia.azurecontainer.io:8080
 ## Cleanup
 Delete the resource group you created initially, e.g.
 `az group delete --name rg-camunda`
+
+
+## Powershell Alterantive
+In case you prefer to use individual CLI commands / scripts, have a look at 
+- [*./powershell/CreateFileShare.ps1*](./powershell/CreateFileShare.ps1)
+- [*./powershell/ACIFromExtRegistryPublicIP.ps1*](./powershell/ACIFromExtRegistryPublicIP.ps1)
